@@ -163,3 +163,23 @@ LIMIT 20;
 
 이를 통해 문서 전체를 LLM에 전달하지 않고도
 질의와 관련된 문단 블록만 선별할 수 있습니다.
+
+## FTS 기반 RAG (최소 구현, CLI)
+
+PostgreSQL Full Text Search(FTS)로 관련 문서 블록(top-k)을 먼저 선별한 뒤,
+선별된 블록을 LLM 컨텍스트로 전달하여 답변을 생성합니다.
+
+### 구성
+- `rag_retriever.py`: PostgreSQL FTS(tsv) 기반 블록 검색
+- `rag_answer.py`: LangChain(ChatOpenAI)로 컨텍스트 기반 답변 생성
+- `rag_cli.py`: CLI 실행 진입점
+
+### 환경변수(.env)
+```env
+OPENAI_API_KEY=...
+PG_HOST=localhost
+PG_PORT=5432
+PG_DB=postgres
+PG_USER=postgres
+PG_PASS=postgres
+PG_TABLE=doc_blocks

@@ -241,3 +241,37 @@ CLI 옵션을 통해 모델을 유연하게 교체할 수 있도록 설계하였
 ```bash
 python rag_cli.py "질문 문장" --model gpt-5.2-mini
 ```
+---
+## 로컬 무료 LLM 실행 (Windows)
+
+본 프로젝트는 OpenAI 대신 무료 로컬 LLM을 사용할 수 있도록 지원합니다.
+
+### Ollama 설치 (Windows)
+1. https://ollama.com/download 에서 다운로드 후 설치
+2. CMD에서 모델 다운로드: ollama pull llama2-7b
+3. 질의 실행: ollama chat llama2-7b
+
+### Python에서 이용
+```python
+from ollama import Ollama
+client = Ollama()
+res = client.chat(model="llama2-7b", prompt="질문 문장")
+print(res)
+```
+
+## LLM 선택 전략
+
+### 1) Local / 무료 / PoC
+- GPT4All (권장)
+- 장점: 설치 간단, GUI 제공, 서버 불필요
+
+### 2) Local / 서버형
+- Ollama
+- 장점: API 서버, 확장성
+- 단점: GPU/러너 이슈 발생 가능
+
+### 3) 상용 / 품질 최우선
+- OpenAI GPT-4.x / GPT-5.x
+
+
+

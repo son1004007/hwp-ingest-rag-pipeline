@@ -4,7 +4,10 @@ import argparse
 from dotenv import load_dotenv
 
 from rag_retriever import retrieve_blocks_fts, retrieve_blocks_fallback, format_context
-from rag_answer import answer_with_context
+# from rag_answer import answer_with_context
+# from rag_answer_ollama import answer_with_context_ollama as answer_with_context
+from rag_answer_gpt4all import answer_with_context
+
 
 def main():
     load_dotenv()
@@ -26,12 +29,11 @@ def main():
         print("[retriever] FTS hit=0, fallback to ILIKE(OR keywords)")
         blocks = retrieve_blocks_fallback(args.question, top_k=args.top_k, table_name=table)
 
-    # 3) no blocks → stop
-    if not blocks:
-        print("[retriever] hit=0 (FTS+fallback). stop.")
-        return
+        # # 3) no blocks → stop
+        # if not blocks:
+        #     print("[retriever] hit=0 (FTS+fallback). stop.")
+        #     return
 
-    print(f"[retriever] blocks={len(blocks)} top_k={args.top_k}")
 
     # 4) dry-run이면 여기서 결과 미리보기만
     if args.dry_run:
@@ -42,6 +44,7 @@ def main():
 
     # 5) LLM
     context = format_context(blocks)
+    print(f"[retriever] blocks={len(blocks)} top_k={args.top_k}")
     print("[answer] generating...\n")
     answer = answer_with_context(args.question, context, model=args.model)
     print(answer)

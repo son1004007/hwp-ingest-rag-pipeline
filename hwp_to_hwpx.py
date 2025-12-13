@@ -25,6 +25,20 @@ def convert_hwp_to_hwpx(hwp_path: str) -> str:
         # 버전에 따라 없을 수도 있으니 실패해도 진행
         pass
 
+    # (1) 메시지 박스 자동 처리 (팝업 자동 클릭)
+    # 값은 환경/팝업 종류에 따라 달라질 수 있는데,
+    # 우선 범용으로 많이 쓰이는 값부터 시도합니다.
+    try:
+        hwp.SetMessageBoxMode(0x00211411)
+    except Exception:
+        pass
+
+    # (2) Open 시 버전 경고 끄기
+    # forum에서 Open args로 versionwarning:false 지원 언급
+    # 옵션 구분자는 환경에 따라 ';' 또는 ','로 들어가기도 해서 ';'로 시작
+    open_args = "forceopen:true;versionwarning:false"
+
+
     # 문서 열기
     # "HWP" 포맷 + forceopen 옵션
     hwp.Open(hwp_path, "HWP", "forceopen:true")

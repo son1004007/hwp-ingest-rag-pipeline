@@ -131,13 +131,13 @@ def print_summary(conn, doc_id: str):
         print("   ", r)
 
 
-
-if __name__ == "__main__":
+def main():
     docs = hwp_to_langchain_docs(HWP_PATH)
     print("생성된 Document:", len(docs))
 
     if not docs:
         print("Document가 0개라서 DB 저장을 중단합니다. (파싱 결과 확인 필요)")
+        return
 
     doc_id = docs[0].metadata.get("doc_id")
 
@@ -150,3 +150,6 @@ if __name__ == "__main__":
     finally:
         conn.close()
 
+
+if __name__ == "__main__":
+    main()

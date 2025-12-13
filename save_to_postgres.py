@@ -27,10 +27,6 @@ def get_conn():
 
 
 def ensure_table(conn):
-    """
-    doc_blocks 테이블이 없으면 생성하고,
-    재적재/중복 방지용 unique index까지 생성합니다.
-    """
     ddl = f"""
     CREATE TABLE IF NOT EXISTS {TABLE_NAME} (
         id            BIGSERIAL PRIMARY KEY,
@@ -42,10 +38,14 @@ def ensure_table(conn):
         block_type    TEXT,
         content       TEXT NOT NULL,
         metadata      JSONB NOT NULL DEFAULT '{{}}'::jsonb,
-        created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
+        created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+        updated_at    TIMESTAMPTZ
     );
 
-    -- 같은 문서/같은 블록은 중복 저장하지 않기(업서트용)
+    -- 이미 테이블이 만들어진 경우에도 컬럼이 없으면 추가되게 (안전)
+    ALTER TABLE {TABLE_NAME}
+      ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ;
+
     CREATE UNIQUE INDEX IF NOT EXISTS ux_{TABLE_NAME}_docid_blockid
     ON {TABLE_NAME} (doc_id, block_id);
 
@@ -60,11 +60,12 @@ def ensure_table(conn):
     conn.commit()
 
 
+
 def save_documents(conn, docs):
     sql = f"""
     INSERT INTO {TABLE_NAME}
-    (doc_id, doc_title, section_title, section_path, block_id, block_type, content, metadata)
-    VALUES (%s,%s,%s,%s,%s,%s,%s,%s)
+    (doc_id, doc_title, section_title, section_path, block_id, block_type, content, metadata, created_at, updated_at)
+    VALUES (%s,%s,%s,%s,%s,%s,%s,%s, now(), NULL)
     ON CONFLICT (doc_id, block_id) DO UPDATE
     SET
       doc_title     = EXCLUDED.doc_title,
@@ -72,7 +73,8 @@ def save_documents(conn, docs):
       section_path  = EXCLUDED.section_path,
       block_type    = EXCLUDED.block_type,
       content       = EXCLUDED.content,
-      metadata      = EXCLUDED.metadata
+      metadata      = EXCLUDED.metadata,
+      updated_at    = now()
     ;
     """
 
@@ -115,7 +117,7 @@ def print_summary(conn, doc_id: str):
         by_type = cur.fetchall()
 
         cur.execute(f"""
-            SELECT block_id, block_type, LEFT(content, 120) AS preview
+            SELECT block_id, block_type, created_at, updated_at, LEFT(content, 80) AS preview
             FROM {TABLE_NAME}
             WHERE doc_id = %s
             ORDER BY id

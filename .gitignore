@@ -3,6 +3,10 @@ __pycache__/
 *.pyc
 venv/
 
+*.hwp
+*.hwpx
+hwp_doc/
+
 # OS
 .DS_Store
 Thumbs.db

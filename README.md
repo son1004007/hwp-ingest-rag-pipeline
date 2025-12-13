@@ -183,3 +183,61 @@ PG_DB=postgres
 PG_USER=postgres
 PG_PASS=postgres
 PG_TABLE=doc_blocks
+```
+
+
+## RAG 단계별 구현 전략
+
+본 프로젝트는 RAG를 한 번에 완성하지 않고,
+아래와 같은 단계적 접근으로 구현하였다.
+
+1. 문서 파싱 및 블록 구조화 (HWP/HWPX)
+2. PostgreSQL 저장 및 정형 검색 기반 구축
+3. 한국어 대응 Retriever (FTS + Keyword Fallback)
+4. (예정) LLM 연동 기반 질의응답
+5. (확장) Table 전용 라우팅 및 Vector Search
+
+이를 통해 LLM 의존도를 최소화하면서도
+점진적으로 고도화 가능한 구조를 지향한다.
+
+## 진행 방향
+
+1) rag-llm 브랜치 만들어서 LLM 붙이기 (최소 비용/안전)
+2) LangGraph로 질문 유형 분기부터 만들기
+3) 검색 품질 튜닝(키워드 추출 고도화)
+
+
+## LLM 연동 (rag-llm 브랜치)
+
+본 프로젝트는 검색 파이프라인(search-only)과
+LLM 연동(RAG)을 명확히 분리하여 구현하였다.
+
+### 설계 원칙
+- 검색 결과가 없으면 LLM을 호출하지 않음
+- 문서 근거 기반 답변만 허용
+- API Key 미설정/Quota 초과 시 안전 종료
+
+### 실행 예시
+
+```bash
+# 검색 결과만 확인 (LLM 미사용)
+python rag_cli.py "질문 문장" --dry-run
+
+# LLM 기반 답변 생성
+python rag_cli.py "질문 문장"
+```
+이를 통해 LLM 의존도를 최소화하면서도
+필요한 시점에만 생성 모델을 활용하는 구조를 지향한다.
+---
+### LLM 모델 선택 기준
+
+본 프로젝트는 RAG 구조 특성상
+- 검색 정확도가 응답 품질의 대부분을 차지하고
+- LLM은 요약 및 근거 정리 역할을 수행한다.
+
+이에 따라 기본 모델로 `gpt-5.2-mini`를 사용하며,
+CLI 옵션을 통해 모델을 유연하게 교체할 수 있도록 설계하였다.
+
+```bash
+python rag_cli.py "질문 문장" --model gpt-5.2-mini
+```

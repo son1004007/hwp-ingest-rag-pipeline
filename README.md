@@ -125,3 +125,41 @@ python scripts\setup_hwp_registry.py "C:\Users\son10\venv\Lib\site-packages\pyhw
 
 원하시면, “폴더 배치 적재 + 파일별 doc_id 규칙 + 실행 로그 남기기”까지 바로 이어서 정리해드리겠습니다.
 ::contentReference[oaicite:0]{index=0}
+
+---
+
+## Full Text Search(FTS) 적용 (PostgreSQL)
+
+문서 원문 블록이 PostgreSQL에 적재된 이후,  
+LLM/RAG 이전 단계로 **키워드 기반 검색(Full Text Search)** 을 먼저 적용합니다.
+
+### 적용 목적
+- LLM 없이도 문서 내용 검색 가능
+- RAG에서 사용할 후보 문서(top-k) 선별 단계로 활용
+- pgvector 도입 전 단계의 경량 검색 인프라 구성
+
+### 적용 SQL
+
+```sql
+-- 1. tsvector 컬럼 추가
+ALTER TABLE public.doc_blocks
+ADD COLUMN IF NOT EXISTS tsv tsvector;
+
+-- 2. 기존 데이터에 대해 tsvector 생성
+UPDATE public.doc_blocks
+SET tsv = to_tsvector('simple', coalesce(content,''));
+
+-- 3. 검색 성능을 위한 GIN 인덱스 생성
+CREATE INDEX IF NOT EXISTS ix_doc_blocks_tsv
+ON public.doc_blocks USING GIN (tsv);
+
+-- 검색 예시
+SELECT doc_id, block_id, LEFT(content, 200) AS preview
+FROM public.doc_blocks
+WHERE tsv @@ plainto_tsquery('simple', '운행제한')
+ORDER BY id
+LIMIT 20;
+```
+
+이를 통해 문서 전체를 LLM에 전달하지 않고도
+질의와 관련된 문단 블록만 선별할 수 있습니다.

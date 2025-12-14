@@ -3,8 +3,7 @@
 CMD 기준:
 
 ```bat
-cd /d "C:\Users\son10\Documents\HWP paser"
-.\venv\Scripts\activate
+C:\Users\son10\venv\Scripts\activate.bat
 ```
 
 ## 비활성화
@@ -57,10 +56,10 @@ HWP
 - [x] HWPX XML 직접 파싱
 - [x] 문단 / 표 블록 추출
 - [x] LangChain Document 생성
-- [ ] PostgreSQL 원문 블록 저장
-- [ ] 벡터DB 연동
-- [ ] RAG 질의응답
-- [ ] LangGraph 기반 워크플로우
+- [x] PostgreSQL 원문 블록 저장
+- [~] RAG 질의응답 (Postgres 검색 + 로컬 LLM 답변 / 안정화 진행중)
+- [ ] 벡터DB 연동 (pgvector/Chroma/FAISS 중 선택)
+- [ ] LangGraph 기반 워크플로우 (retrieve→answer→fallback 그래프화)
 
 ---
 
@@ -244,7 +243,7 @@ LLM 연동(RAG)을 명확히 분리하여 구현하였다.
 ### 실행 예시
 
 ```bash
-# 검색 결과만 확인 (LLM 미사용)
+# 검색 결과만 확인 (LL1M 미사용)
 python rag_cli.py "질문 문장" --dry-run
 
 # LLM 기반 답변 생성
@@ -307,3 +306,65 @@ print(res)
 ### 3) 상용 / 품질 최우선
 
 - OpenAI GPT-4.x / GPT-5.x
+
+# pgvector 설치
+
+## vs build tools download
+
+https://visualstudio.microsoft.com/ko/visual-cpp-build-tools/
+다운로드 및 설치 후
+수정 > 워크로드 > 데스크톱 및 모바일: C++를 사용한 데스크톱 개발 체크 후 수정
+
+## pgvector 설치
+
+https://github.com/pgvector/pgvector
+
+Windows
+Ensure C++ support in Visual Studio is installed and run x64 Native Tools Command Prompt for VS [version] as administrator. Then use nmake to build:
+
+set "PGROOT=C:\Program Files\PostgreSQL\18"
+cd %TEMP%
+git clone --branch v0.8.1 https://github.com/pgvector/pgvector.git
+cd pgvector
+nmake /F Makefile.win
+nmake /F Makefile.win install
+
+내용:
+
+```
+c:\Temp\pgvector>set "PGROOT=C:\Program Files\PostgreSQL\18"
+
+c:\Temp\pgvector>nmake /F Makefile.win
+
+Microsoft(R) Program Maintenance Utility 버전 14.50.35720.0
+Copyright (c) Microsoft Corporation. All rights reserved.
+
+        cl /nologo /I"C:\Program Files\PostgreSQL\18\include\server\port\win32_msvc" /I"C:\Program Files\PostgreSQL\18\include\server\port\win32" /I"C:\Program Files\PostgreSQL\18\include\server" /I"C:\Program Files\PostgreSQL\18\include"   /O2 /fp:fast /c src\bitutils.c /Fosrc\bitutils.obj
+bitutils.c
+        cl /nologo /I"C:\Program Files\PostgreSQL\18\include\server\port\win32_msvc" /I"C:\Program Files\PostgreSQL\18\include\server\port\win32" /I"C:\Program Files\PostgreSQL\18\include\server" /I"C:\Program Files\PostgreSQL\18\include"   /O2 /fp:fast /c src\bitvec.c /Fosrc\bitvec.obj
+bitvec.c
+        cl /nologo /I"C:\Program Files\PostgreSQL\18\include\server\port\win32_msvc" /I"C:\Program Files\PostgreSQL\18\include\server\port\win32" /I"C:\Program Files\PostgreSQL\18\include\server" /I"C:\Program Files\PostgreSQL\18\include"   /O2 /fp:fast /c src\halfutils.c /Fosrc\halfutils.obj
+halfutils.c
+        cl /nologo /I"C:\Program Files\PostgreSQL\18\include\server\port\win32_msvc" /I"C:\Program Files\PostgreSQL\18\include\server\port\win32" /I"C:\Program Files\PostgreSQL\18\include\server" /I"C:\Program Files\PostgreSQL\18\include"   /O2 /fp:fast /c src\halfvec.c /Fosrc\halfvec.obj
+halfvec.c
+        cl /nologo /I"C:\Program Files\PostgreSQL\18\include\server\port\win32_msvc" /I"C:\Program Files\PostgreSQL\18\include\server\port\win32" /I"C:\Program Files\PostgreSQL\18\include\server" /I"C:\Program Files\PostgreSQL\18\include"   /O2 /fp:fast /c src\hnsw.c /Fosrc\hnsw.obj
+hnsw.c
+C:\Program Files\PostgreSQL\18\include\server\access/tupmacs.h(66): error C2196: case 값 '4'을(를) 이미 사용했습니다.
+C:\Program Files\PostgreSQL\18\include\server\access/tupmacs.h(225): error C2196: case 값 '4'을(를) 이미 사용했습니다.
+NMAKE : fatal error U1077: 'cl /nologo /I"C:\Program Files\PostgreSQL\18\include\server\port\win32_msvc" /I"C:\Program Files\PostgreSQL\18\include\server\port\win32" /I"C:\Program Files\PostgreSQL\18\include\server" /I"C:\Program Files\PostgreSQL\18\include"   /O2 /fp:fast /c src\hnsw.c /Fosrc\hnsw.obj' : '0x2' 반환 코드입니다.
+Stop.
+
+c:\Temp\pgvector>nmake /F Makefile.win install
+
+Microsoft(R) Program Maintenance Utility 버전 14.50.35720.0
+Copyright (c) Microsoft Corporation. All rights reserved.
+
+        cl /nologo /I"C:\Program Files\PostgreSQL\18\include\server\port\win32_msvc" /I"C:\Program Files\PostgreSQL\18\include\server\port\win32" /I"C:\Program Files\PostgreSQL\18\include\server" /I"C:\Program Files\PostgreSQL\18\include"   /O2 /fp:fast /c src\hnsw.c /Fosrc\hnsw.obj
+hnsw.c
+C:\Program Files\PostgreSQL\18\include\server\access/tupmacs.h(66): error C2196: case 값 '4'을(를) 이미 사용했습니다.
+C:\Program Files\PostgreSQL\18\include\server\access/tupmacs.h(225): error C2196: case 값 '4'을(를) 이미 사용했습니다.
+NMAKE : fatal error U1077: 'cl /nologo /I"C:\Program Files\PostgreSQL\18\include\server\port\win32_msvc" /I"C:\Program Files\PostgreSQL\18\include\server\port\win32" /I"C:\Program Files\PostgreSQL\18\include\server" /I"C:\Program Files\PostgreSQL\18\include"   /O2 /fp:fast /c src\hnsw.c /Fosrc\hnsw.obj' : '0x2' 반환 코드입니다.
+Stop.
+
+c:\Temp\pgvector>
+```

@@ -1,0 +1,2 @@
+-- DB 1회 실행
+CREATE EXTENSION IF NOT EXISTS vector;

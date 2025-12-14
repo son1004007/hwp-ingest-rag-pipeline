@@ -88,7 +88,7 @@ def retrieve_blocks_fallback(question: str, top_k: int = 12, table_name: str = "
     finally:
         conn.close()
 
-def format_context(blocks, max_chars: int = 12000) -> str:
+def format_context(blocks, max_chars: int = 2000) -> str:
     """
     LLM에 넣을 컨텍스트 문자열 생성(너무 길면 잘라냄).
     """

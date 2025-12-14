@@ -1,6 +1,7 @@
 # rag_answer_gpt4all.py
 import os
 from gpt4all import GPT4All
+from pathlib import Path
 
 # 모델 파일(.gguf)은 GPT4All 앱에서 다운로드한 것을 사용해도 되고,
 # GPT4All이 관리하는 기본 모델 디렉토리에 있는 것을 그대로 써도 됩니다.
@@ -16,11 +17,43 @@ DEFAULT_MODEL = os.getenv("GPT4ALL_MODEL", "").strip()
 DEFAULT_MAX_TOKENS = int(os.getenv("GPT4ALL_MAX_TOKENS", "512"))
 DEFAULT_TEMP = float(os.getenv("GPT4ALL_TEMP", "0.2"))
 
-_system_prompt = """너는 문서 기반 QA 도우미다.
-- 반드시 제공된 [문서] 내용에 근거해서만 답변하라.
-- 문서에 없는 내용은 '문서에 명시되어 있지 않습니다.' 라고 답하라.
-- 답변은 한국어로, 핵심만 간결하게 작성하라.
+_system_prompt = """당신은 '문서 기반 질의응답' 도우미입니다.
+
+규칙:
+- 반드시 아래 [문서]에 포함된 내용만 근거로 답변하세요.
+- 문서에 없는 정보는 '문서에 명시되어 있지 않습니다.' 라고 답하세요.
+- 답변은 반드시 한국어로만 작성하세요. (영어 사용 금지)
+- 3~6문장 이내로 간결하게 작성하세요.
+- 가능하면 근거가 된 문서 조각의 doc_id, block_id를 1~3개 같이 적어주세요.
 """
+from gpt4all import GPT4All
+from pathlib import Path
+import os
+
+def _resolve_model_path(model_name: str) -> tuple[str, str]:
+    # 1) 사용자가 절대경로를 줬으면 그대로 사용
+    p = Path(model_name)
+    if p.exists() and p.is_file():
+        return p.name, str(p.parent)
+
+    # 2) 환경변수로 모델 디렉토리 지정 가능
+    env_dir = os.getenv("GPT4ALL_MODEL_DIR", "").strip()
+    if env_dir:
+        cand = Path(env_dir) / model_name
+        if cand.exists():
+            return model_name, env_dir
+
+    # 3) Windows에서 흔한 기본 경로들 탐색
+    candidates = [
+        Path.home() / ".cache" / "gpt4all",
+        Path(os.getenv("LOCALAPPDATA", "")) / "nomic.ai" / "GPT4All",
+    ]
+    for d in candidates:
+        cand = d / model_name
+        if cand.exists():
+            return model_name, str(d)
+
+    raise FileNotFoundError(f"Model file does not exist in known dirs: {model_name}")
 
 def _build_prompt(question: str, context: str) -> str:
     return f"""{_system_prompt}
@@ -43,7 +76,8 @@ def answer_with_context(question: str, context: str, model: str = "") -> str:
     if not context or not context.strip():
         return "[LLM] context is empty. answer skipped."
 
-    model_name = (model or DEFAULT_MODEL).strip()
+    model_name = (model or os.getenv("GPT4ALL_MODEL", "")).strip()
+    
     if not model_name:
         return (
             "[LLM] GPT4All model not specified.\n"
@@ -54,8 +88,8 @@ def answer_with_context(question: str, context: str, model: str = "") -> str:
     prompt = _build_prompt(question, context)
 
     try:
-        # allow_download=False: 자동 다운로드가 원치 않는 경우를 방지
-        llm = GPT4All(model_name, allow_download=False)
+        name, model_dir = _resolve_model_path(model_name)
+        llm = GPT4All(name, model_path=model_dir, allow_download=False)
         with llm.chat_session():
             out = llm.generate(
                 prompt,
